@@ -60,6 +60,14 @@ button,input,select,textarea{font:inherit;color:inherit;letter-spacing:inherit}
 .brand{position:relative}
 .pdf-tip{position:absolute;right:0;top:calc(100% + 8px);z-index:20;width:min(340px,calc(100vw - 32px));background:var(--surface);color:var(--ink);border-radius:14px;padding:16px 18px;box-shadow:0 10px 30px rgba(0,0,0,.18);display:flex;flex-direction:column;gap:8px;font-size:14px}
 .pdf-tip p{margin:0;color:var(--ink2);line-height:1.6}
+.last-edit{font-size:12px;color:var(--muted)}
+.logs{display:flex;flex-direction:column}
+.logs .row{display:grid;grid-template-columns:110px 80px minmax(0,1fr);gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}
+.logs .row:last-child{border-bottom:0}
+.logs .t{color:var(--muted);font-variant-numeric:tabular-nums}
+.logs .n{font-weight:600}
+@media (max-width:560px){.logs .row{grid-template-columns:1fr;gap:2px}}
+.prev{display:block;font-size:11px;color:var(--muted);font-weight:500;margin-top:2px}
 /* 수입금 */
 .top{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(0,1fr);gap:12px}
 @media (max-width:760px){.top{grid-template-columns:1fr}}
@@ -260,7 +268,7 @@ textarea{min-height:64px;resize:vertical;line-height:1.5}
       <div class="actions"><button class="btn" id="pdfGo" type="button">계속</button><button class="btn ghost" id="pdfCancel" type="button">취소</button></div>
     </div>
   </header>
-  <div class="hero"><h1>기획공연 티켓 판매 현황</h1><p id="heroSub">주간 보고</p></div>
+  <div class="hero"><h1>기획공연 티켓 판매 현황</h1><p id="heroSub">주간 보고</p><span class="last-edit" id="lastEdit"></span></div>
 
   <div id="loading" class="empty">판매 데이터를 불러오는 중이에요…</div>
 
@@ -294,23 +302,24 @@ textarea{min-height:64px;resize:vertical;line-height:1.5}
       <section><div class="sec-head"><h2>종료 공연</h2></div><div class="panel list" id="ended"></div></section>
     </div>
 
-    <p class="foot">데이터는 달서아트센터 담당자의 구글 시트에 저장돼요. · 티켓 판매 수입금 = 2026년 1월 1일부터 기준일까지의 누적 입장료 수입 · 판매율 = 누적 판매매수 ÷ 총 좌석 수(회차당 좌석 × 회차)<br>평균 객단가 = 누적 매출 ÷ 누적 판매매수 (티켓 1매당 평균 결제 금액)</p>
+    <p class="foot">데이터는 달서아트센터 담당자의 구글 시트에 저장돼요. · 티켓 판매 수입금 = 기 수입금(이전 공연 입장료 수입) + 현황판에 등록된 기획공연의 누적 매출 · 판매율 = 누적 판매매수 ÷ 총 좌석 수(회차당 좌석 × 회차)<br>평균 객단가 = 누적 매출 ÷ 누적 판매매수 (티켓 1매당 평균 결제 금액)</p>
   </div>
 
   <section id="editor" class="editor">
-    <div class="sec-head"><h2>데이터 입력</h2><p>수정 비밀번호를 아는 분만 고칠 수 있어요</p></div>
-    <div id="gate" class="form"><div class="grid-f"><label for="pw">수정 비밀번호<input type="password" id="pw" autocomplete="current-password"></label></div>
+    <div class="sec-head"><h2>데이터 입력</h2><p id="edWho">수정 비밀번호를 아는 분만 고칠 수 있어요</p></div>
+    <div id="gate" class="form"><div class="grid-f"><label for="who">이름<input id="who" autocomplete="name" placeholder="수정 기록에 남을 이름"></label><label for="pw">수정 비밀번호<input type="password" id="pw" autocomplete="current-password"></label></div>
       <div class="actions"><button class="btn" id="pwBtn">확인</button><span class="status" id="pwStatus"></span></div></div>
     <div id="edBody" hidden style="display:flex;flex-direction:column;gap:18px">
     <div class="tabs" role="tablist">
       <button class="tab" role="tab" data-tab="weekly" aria-selected="true">주간 실적</button>
       <button class="tab" role="tab" data-tab="shows" aria-selected="false">공연 관리</button>
+      <button class="tab" role="tab" data-tab="logs" aria-selected="false">수정 기록</button>
     </div>
 
     <div data-pane="weekly" class="form">
       <div class="grid-f">
         <label for="wDate">기준일<input type="date" id="wDate"></label>
-        <label for="wIncome">2026년 입장료 수입금(누적, 원)<input type="number" min="0" id="wIncome"></label>
+        <label for="wBase">기 수입금(이전 공연, 원)<input type="number" min="0" id="wBase"></label>
         <label for="wGoal">연간 목표금액(원)<input type="number" min="0" id="wGoal"></label>
       </div>
       <div class="subhead">공연별 실적 · 코멘트</div>
@@ -330,13 +339,14 @@ textarea{min-height:64px;resize:vertical;line-height:1.5}
       </div>
       <div class="actions"><button class="btn" id="sSave">공연 추가</button><button class="btn ghost" id="sCancel" hidden>수정 취소</button><span class="status" id="sStatus"></span></div>
     </div>
-  </div>
+  <div data-pane="logs" class="form" hidden><div class="logs" id="logList"></div></div>
+    </div>
   </section>
 </div>
 
 <script>
 (function(){
-const S={shows:{},reports:[],notes:{},income:{},goal:null,asof:null,loaded:{shows:false,reports:false}};
+const S={shows:{},reports:[],notes:{},income:{},goal:null,base:null,logs:[],asof:null,loaded:{shows:false,reports:false}};
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=n=>Number(n||0).toLocaleString("ko-KR");
@@ -354,9 +364,12 @@ const wonKr=n=>{n=Number(n||0);const e=Math.floor(n/1e8),m=Math.round((n%1e8)/1e
 function sortedShows(){return Object.entries(S.shows).map(([id,v])=>({id,...v})).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.name<b.name?-1:1))}
 // 공연마다 고정 색: 전체 공연을 공연일 순으로 나열한 위치로 정해서, 기준일을 바꿔도 색이 바뀌지 않음
 function colorOf(id){const i=sortedShows().findIndex(s=>s.id===id);return `var(--s${(i<0?0:i)%6+1})`}
-function allDates(){return [...new Set([...S.reports.map(r=>r.date),...Object.keys(S.income)])].sort().reverse()}
+function allDates(){return [...new Set([...S.reports.map(r=>r.date),...(S.base==null?Object.keys(S.income):[])])].sort().reverse()}
 function snap(showId,date){let best=null;for(const r of S.reports){if(r.showId===showId&&r.date<=date&&(!best||r.date>best.date))best=r}return best}
-function incomeAt(date){let k=null;for(const d of Object.keys(S.income))if(d<=date&&(!k||d>k))k=d;return k?{date:k,amount:S.income[k]}:null}
+function showRevAt(date){let t=0;for(const id of Object.keys(S.shows)){const r=snap(id,date);if(r)t+=r.revenue}return t}
+function incomeAt(date){
+  if(S.base!=null){const sr=showRevAt(date);return {date,amount:S.base+sr,shows:sr}}
+  let k=null;for(const d of Object.keys(S.income))if(d<=date&&(!k||d>k))k=d;return k?{date:k,amount:S.income[k]}:null}
 function phase(s,asof){if(s.date<asof)return"ended";if(s.openDate&&s.openDate>asof)return"upcoming";return"selling"}
 
 function compute(){
@@ -375,18 +388,18 @@ function compute(){
 function renderGoal(C,sell){
   const inc=incomeAt(C.asof),prev=C.prevDate?incomeAt(C.prevDate):null,goal=S.goal;
   const amt=inc?inc.amount:0;
-  if(!inc&&!goal){$("goal").innerHTML=`<span class="eyebrow">2026년 티켓 판매 수입금</span><p class="empty">아래 입력 패널에서 입장료 수입금과 연간 목표금액을 넣어 주세요.</p>`}
+  if(!inc&&!goal){$("goal").innerHTML=`<span class="eyebrow">2026년 티켓 판매 수입금</span><p class="empty">아래 입력 패널의 ‘기 수입금·목표’에서 금액을 넣어 주세요.</p>`}
   else{
     const r=goal?amt/goal:0,over=goal&&amt>goal;
     const scale=Math.max(1,r);           // 초과하면 막대 전체를 실적 기준으로 두고 목표 위치에 눈금 표시
     const base=goal?Math.min(amt,goal)/goal/scale*100:0,overW=over?(r-1)/scale*100:0,mark=goal?100/scale:0;
-    const dInc=prev&&inc&&inc.date!==prev.date?amt-prev.amount:null;
+    const dInc=prev&&inc&&C.prevDate&&inc.date!==prev.date?amt-prev.amount:null;
     $("goal").innerHTML=`
       <div class="goal-head"><div><span class="eyebrow">2026년 티켓 판매 수입금</span><div class="amt num">${fmt(amt)}<small>원</small></div></div>
       ${goal?`<div class="rate num">${(r*100).toFixed(1)}%<span>목표 달성률</span></div>`:""}</div>
       ${goal?`<div class="gtrack" role="img" aria-label="목표 대비 ${(r*100).toFixed(1)}%"><div class="gfill" style="width:${base}%"></div>${over?`<div class="gover" style="left:${base}%;width:${overW}%"></div>`:""}<div class="gmark" style="left:calc(${mark}% - 1px)"></div></div>
       <div class="gmeta"><span>목표 <b class="num">${fmt(goal)}원</b></span>${over?`<span class="badge num">목표 초과 +${wonKr(amt-goal)}</span>`:`<span>목표까지 <b class="num">${fmt(goal-amt)}원</b></span>`}</div>`:""}
-      <div class="gmeta"><span>${inc?md(inc.date)+" 기준 누적 입장료 수입":""}</span><span>${dInc!==null?`지난 집계 대비 <b class="plus num">+${fmt(dInc)}원</b>`:""}</span></div>`;
+      <div class="gmeta"><span>${inc?(S.base!=null?`기 수입금 <b class="num">${fmt(S.base)}원</b> + 기획공연 매출 <b class="num">${fmt(inc.shows)}원</b>`:md(inc.date)+" 기준 누적 입장료 수입"):""}</span><span>${dInc!==null?`지난 집계 대비 <b class="plus num">+${fmt(dInc)}원</b>`:""}</span></div>`;
   }
   const up=C.rows.filter(r=>r.ph==="upcoming").length;
   $("side").innerHTML=`<span class="eyebrow">판매 중인 공연</span><div class="v num">${sell.length}<small>편</small></div>
@@ -401,6 +414,7 @@ function render(){
   $("asofSel").innerHTML=(C.dates.length?C.dates:[C.asof]).map(d=>`<option value="${d}" ${d===C.asof?"selected":""}>${md(d)}</option>`).join("");
   const sell=C.rows.filter(r=>r.ph==="selling");
   $("heroSub").textContent=`${md(C.asof)} 기준 · 판매 중 ${sell.length}편`;
+  $("lastEdit").textContent=S.logs.length?`최근 수정 ${ft(S.logs[0].time)} · ${S.logs[0].name}`:"";
   renderGoal(C,sell);
 
   // table
@@ -493,28 +507,34 @@ function renderChart(C){
 let editId=null,delArm=null,lastWDate=null;
 function renderEditor(C){
   if($("edBody").hidden)return;
-  if(!$("wDate").value)$("wDate").value=C.asof||today();
-  renderWeekly(false);
+  if(!$("wDate").value)$("wDate").value=today();
+  renderWeekly(false);renderLogs();
   $("showList").innerHTML=sortedShows().map(s=>`<div class="row"><div><div>${esc(s.name)}</div><div class="m">${esc(s.series)} · ${md(s.date)} · ${fmt(s.sessions||1)}회 · ${fmt(s.seats)}석 · ${s.openDate?md(s.openDate)+" 오픈":""}</div></div>
     <div class="actions" style="flex:none"><button class="btn ghost" data-edit="${s.id}">수정</button><button class="btn danger" data-del="${s.id}">${delArm===s.id?"정말 삭제":"삭제"}</button></div></div>`).join("")||`<p class="empty">등록된 공연이 없어요.</p>`;
+}
+function ft(t){const m=/^\d{4}-(\d\d)-(\d\d)\s*(.*)$/.exec(t||"");return m?`${+m[1]}. ${+m[2]}. ${m[3]}`:(t||"")}
+function renderLogs(){
+  const el=$("logList");if(!el)return;
+  el.innerHTML=S.logs.length?S.logs.map(l=>`<div class="row"><span class="t">${esc(ft(l.time))}</span><span class="n">${esc(l.name)}</span><span>${esc(l.text)}</span></div>`).join(""):'<p class="empty">아직 수정 기록이 없어요.</p>';
 }
 function renderWeekly(reset){
   const d=$("wDate").value;if(!d)return;
   const keep={};if(!reset&&lastWDate===d)document.querySelectorAll("#wRows input,#wRows textarea").forEach(i=>keep[i.id]=i.value);
   const fresh=reset||lastWDate!==d;
-  if(fresh||($("wIncome").value===""&&document.activeElement!==$("wIncome")))$("wIncome").value=S.income[d]??"";
+  if(fresh||($("wBase").value===""&&document.activeElement!==$("wBase")))$("wBase").value=S.base??"";
   if(fresh||($("wGoal").value===""&&document.activeElement!==$("wGoal")))$("wGoal").value=S.goal??"";
   lastWDate=d;
   const list=sortedShows().filter(s=>s.date>=d&&(!s.openDate||s.openDate<=d));
   const focus=document.activeElement&&document.activeElement.closest&&document.activeElement.closest("#wRows")?document.activeElement.id:null;
   $("wRows").innerHTML=list.length?list.map(s=>{
     const ex=S.reports.find(r=>r.showId===s.id&&r.date===d),pv=snap(s.id,d),nt=S.notes[`${s.id}_${d}`]||"";
-    const hint=ex?"이 날짜 실적 있음 · 덮어쓰기":pv?`직전 ${md(pv.date)}: ${fmt(pv.tickets)}매 · ${won(pv.revenue)}`:"첫 입력";
+    const pn=Object.keys(S.notes).filter(k=>k.startsWith(s.id+"_")&&k.slice(s.id.length+1)<d).sort().pop();
+    const hint=ex?"이 날짜 실적 있음 · 고치면 이전 값은 수정 기록에 남아요":pv?`직전 ${md(pv.date)} 값을 미리 채웠어요. 바뀐 숫자로 고쳐 주세요`:"첫 입력";
     const v=(k,def)=>esc(keep[k]??def);
     return `<div class="entry"><div class="nm">${esc(s.name)}<small>${md(s.date)} · ${hint}</small></div>
-      <label for="t_${s.id}">누적 판매매수<input type="number" min="0" id="t_${s.id}" value="${v("t_"+s.id,ex?ex.tickets:"")}"></label>
-      <label for="r_${s.id}">누적 매출(원)<input type="number" min="0" id="r_${s.id}" value="${v("r_"+s.id,ex?ex.revenue:"")}"></label>
-      <label class="cm" for="n_${s.id}">코멘트<textarea id="n_${s.id}" placeholder="프로모션, 이슈, 다음 주 계획">${v("n_"+s.id,nt)}</textarea></label></div>`}).join(""):`<p class="empty">이 날짜에 판매 중인 공연이 없어요.</p>`;
+      <label for="t_${s.id}">누적 판매매수<input type="number" min="0" id="t_${s.id}" value="${v("t_"+s.id,ex?ex.tickets:pv?pv.tickets:"")}">${pv&&!ex?`<span class="prev">직전 ${fmt(pv.tickets)}매</span>`:""}</label>
+      <label for="r_${s.id}">누적 매출(원)<input type="number" min="0" id="r_${s.id}" value="${v("r_"+s.id,ex?ex.revenue:pv?pv.revenue:"")}">${pv&&!ex?`<span class="prev">직전 ${won(pv.revenue)}</span>`:""}</label>
+      <label class="cm" for="n_${s.id}">코멘트<textarea id="n_${s.id}" placeholder="${pn?esc("지난 코멘트("+md(pn.slice(s.id.length+1))+"): "+S.notes[pn]):"프로모션, 이슈, 다음 주 계획"}">${v("n_"+s.id,nt)}</textarea></label></div>`}).join(""):`<p class="empty">이 날짜에 판매 중인 공연이 없어요.</p>`;
   if(focus&&$(focus))$(focus).focus();
 }
 
@@ -529,8 +549,8 @@ function bindEditor(){
     $("wSave").disabled=true;$("wStatus").textContent="저장 중…";let n=0;
     try{
       const ops=[];
-      const inc=$("wIncome").value,goal=$("wGoal").value;
-      if(inc!==""&&Number(inc)!==S.income[d])ops.push({type:"income",date:d,amount:Number(inc)});
+      const base=$("wBase").value,goal=$("wGoal").value;
+      if(base!==""&&Number(base)!==S.base)ops.push({type:"base",amount:Number(base)});
       if(goal!==""&&Number(goal)!==S.goal)ops.push({type:"goal",target:Number(goal)});
       for(const s of list){
         const t=$("t_"+s.id).value,r=$("r_"+s.id).value,nt=$("n_"+s.id).value;
@@ -583,30 +603,36 @@ $("pdfCancel").onclick=()=>{$("pdfTip").hidden=true};
 document.addEventListener("keydown",e=>{if(e.key==="Escape")$("pdfTip").hidden=true});
 
 const API="https://script.google.com/macros/s/AKfycbziMldYBmasbMp0ubvydHUNx2cFP0Cry_hbWS8B8av8juC66jajoCNJSP2ObaXyuo_E/exec";
-const PWK="dsac_edit_pw";
+const PWK="dsac_edit_pw",WHOK="dsac_edit_who";
+const getWho=()=>{try{return localStorage.getItem(WHOK)||""}catch(e){return ""}};
+const setWho=v=>{try{localStorage.setItem(WHOK,v)}catch(e){}};
+let whoMem="";
 const getPw=()=>{try{return localStorage.getItem(PWK)||""}catch(e){return ""}};
 const setPw=v=>{try{v?localStorage.setItem(PWK,v):localStorage.removeItem(PWK)}catch(e){}};
 let pwMem="";
-function apply(d){S.shows=d.shows||{};S.reports=d.reports||[];S.notes=d.notes||{};S.income=d.income||{};S.goal=d.goal||null;S.loaded={shows:true,reports:true};render()}
+function apply(d){S.shows=d.shows||{};S.reports=d.reports||[];S.notes=d.notes||{};S.income=d.income||{};S.goal=d.goal||null;S.base=d.base==null?null:d.base;S.logs=d.logs||[];S.loaded={shows:true,reports:true};render()}
 function errMsg(e){return e&&e.code==="wrong_password"?"수정 비밀번호가 맞지 않아요. 다시 확인해 주세요.":"저장하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요."}
 async function call(body){const r=await fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(body)});const j=await r.json();if(!j.ok)throw{code:j.error};return j}
-async function post(ops){const j=await call({password:pwMem,ops});if(j.data)apply(j.data)}
+async function post(ops){const j=await call({password:pwMem,name:whoMem,ops});if(j.data)apply(j.data)}
 async function load(){
   try{const r=await fetch(API);const j=await r.json();if(!j.ok)throw 0;apply(j.data)}
   catch(e){if(!S.loaded.shows){$("loading").textContent="판매 데이터를 불러오지 못했어요. 잠시 후 새로고침해 주세요."}}
 }
-async function unlock(pw,quiet){
+async function unlock(pw,quiet,who){
+  who=(who??$("who").value).trim();
+  if(!who){$("pwStatus").textContent="이름을 입력해 주세요. 수정 기록에 남아요.";$("who").focus();return}
   if(!pw){$("pwStatus").textContent="비밀번호를 입력해 주세요.";return}
   $("pwBtn").disabled=true;if(!quiet)$("pwStatus").textContent="확인 중…";
-  try{await call({password:pw,check:true});pwMem=pw;setPw(pw);$("gate").hidden=true;$("edBody").hidden=false;render()}
+  try{await call({password:pw,check:true});pwMem=pw;whoMem=who;setPw(pw);setWho(who);$("edWho").innerHTML=`<b>${esc(who)}</b> 님으로 수정 중 · <button class="tbtn" id="switchWho" type="button" style="padding:3px 10px;font-size:12px">다른 이름으로</button>`;$("switchWho").onclick=()=>{setPw("");pwMem="";$("edBody").hidden=true;$("gate").hidden=false;$("pw").value="";$("edWho").textContent="수정 비밀번호를 아는 분만 고칠 수 있어요"};$("gate").hidden=true;$("edBody").hidden=false;$("wDate").value=today();lastWDate=null;render()}
   catch(e){setPw("");$("pwStatus").textContent=quiet?"":(e&&e.code==="wrong_password"?"비밀번호가 맞지 않아요.":"확인하지 못했어요. 잠시 후 다시 시도해 주세요.")}
   $("pwBtn").disabled=false;
 }
+$("who").value=getWho();
 $("pwBtn").onclick=()=>unlock($("pw").value.trim());
 $("pw").onkeydown=e=>{if(e.key==="Enter")unlock($("pw").value.trim())};
 bindEditor();
 load();
-if(getPw())unlock(getPw(),true);
+if(getPw()&&getWho())unlock(getPw(),true,getWho());
 setInterval(()=>{if(document.visibilityState==="visible"&&!(document.activeElement&&document.activeElement.closest&&document.activeElement.closest("#editor")))load()},60000);
 })();
 </script>
