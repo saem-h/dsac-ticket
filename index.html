@@ -101,7 +101,7 @@ section{display:flex;flex-direction:column;gap:18px}
 
 /* table */
 .tbl-box{overflow-x:auto;background:var(--surface);border-radius:18px}
-table{border-collapse:collapse;width:100%;min-width:820px;font-size:14px}
+table{border-collapse:collapse;width:100%;min-width:880px;font-size:14px}
 th,td{padding:13px 16px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
 th{font-size:12px;color:var(--muted);font-weight:600}
 th:first-child,td:first-child{text-align:left;white-space:normal;min-width:220px}
@@ -147,7 +147,9 @@ tfoot td{font-weight:700;border-bottom:0}
 .bar{display:flex;flex-direction:column;gap:8px}
 .bar-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13px;color:var(--muted)}
 .bar-row b{font-size:30px;color:var(--ink);font-weight:700;letter-spacing:-.03em;margin-right:4px}
-.track{height:6px;border-radius:3px;background:var(--track);overflow:hidden}
+.track{position:relative;height:6px;border-radius:3px;background:var(--track);overflow:hidden}
+.fill.inv{position:absolute;top:0;opacity:.35;border-radius:0 3px 3px 0}
+.occ{font-size:12px;color:var(--muted)}
 .fill{height:100%;border-radius:3px}
 .t-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .t-stats div{display:flex;flex-direction:column;gap:2px;min-width:0}
@@ -178,6 +180,10 @@ tfoot td{font-weight:700;border-bottom:0}
 .list .row div{min-width:0}
 .list .row .m{color:var(--muted);font-size:13px}
 .empty{color:var(--muted);font-size:14px;margin:0}
+.settle{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--ink2);margin-top:4px}
+.settle b{font-weight:600;color:var(--ink)}
+.settle b.plus{color:var(--accent-ink)}
+.end-row{align-items:flex-start!important}
 .foot{font-size:12px;color:var(--muted);line-height:1.8;margin:0}
 
 /* editor */
@@ -191,7 +197,7 @@ label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--mute
 input,select,textarea{background:var(--bg);border:1px solid transparent;border-radius:10px;padding:9px 12px;font-size:14px;width:100%;min-width:0}
 input:focus,textarea:focus{border-color:var(--accent);outline:none}
 textarea{min-height:64px;resize:vertical;line-height:1.5}
-.entry{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:end;padding:14px 0;border-bottom:1px solid var(--line)}
+.entry{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,.9fr) minmax(0,.7fr) minmax(0,1fr);gap:12px;align-items:end;padding:14px 0;border-bottom:1px solid var(--line)}
 .entry .nm{font-size:14px;font-weight:600}
 .entry .nm small{display:block;color:var(--muted);font-weight:400;font-size:12px}
 .entry .cm{grid-column:1/-1}
@@ -302,7 +308,7 @@ textarea{min-height:64px;resize:vertical;line-height:1.5}
       <section><div class="sec-head"><h2>종료 공연</h2></div><div class="panel list" id="ended"></div></section>
     </div>
 
-    <p class="foot">데이터는 달서아트센터 담당자의 구글 시트에 저장돼요. · 티켓 판매 수입금 = 기 수입금(이전 공연 입장료 수입) + 현황판에 등록된 기획공연의 누적 매출 · 판매율 = 누적 판매매수 ÷ 총 좌석 수(회차당 좌석 × 회차)<br>평균 객단가 = 누적 매출 ÷ 누적 판매매수 (티켓 1매당 평균 결제 금액)</p>
+    <p class="foot">데이터는 달서아트센터 담당자의 구글 시트에 저장돼요. · 티켓 판매 수입금 = 기 수입금(이전 공연 입장료 수입) + 기획공연 수익(최종 정산을 마친 공연은 수수료를 뺀 실제 수익금, 정산 전 공연은 누적 매출) · 판매율 = 유료 판매매수 ÷ 총 좌석 수(회차당 좌석 × 회차) · 객석 점유율 = (유료 + 초대) ÷ 총 좌석 수 · 수수료 = 전체 판매금 − 실제 수익금<br>평균 객단가 = 누적 매출 ÷ 유료 판매매수 (티켓 1매당 평균 결제 금액)</p>
   </div>
 
   <section id="editor" class="editor">
@@ -313,6 +319,7 @@ textarea{min-height:64px;resize:vertical;line-height:1.5}
     <div class="tabs" role="tablist">
       <button class="tab" role="tab" data-tab="weekly" aria-selected="true">주간 실적</button>
       <button class="tab" role="tab" data-tab="shows" aria-selected="false">공연 관리</button>
+      <button class="tab" role="tab" data-tab="settle" aria-selected="false">최종 정산</button>
       <button class="tab" role="tab" data-tab="logs" aria-selected="false">수정 기록</button>
     </div>
 
@@ -339,14 +346,19 @@ textarea{min-height:64px;resize:vertical;line-height:1.5}
       </div>
       <div class="actions"><button class="btn" id="sSave">공연 추가</button><button class="btn ghost" id="sCancel" hidden>수정 취소</button><span class="status" id="sStatus"></span></div>
     </div>
-  <div data-pane="logs" class="form" hidden><div class="logs" id="logList"></div></div>
+  <div data-pane="settle" class="form" hidden>
+      <p class="status" style="margin:0">공연이 끝나고 정산이 확정되면 공연별로 전체 판매금과 수수료를 뺀 실제 수익금을 입력해 주세요. 수수료는 자동으로 계산돼요.</p>
+      <div id="sRows"></div>
+      <div class="actions"><button class="btn" id="stSave">정산 저장</button><span class="status" id="stStatus"></span></div>
+    </div>
+    <div data-pane="logs" class="form" hidden><div class="logs" id="logList"></div></div>
     </div>
   </section>
 </div>
 
 <script>
 (function(){
-const S={shows:{},reports:[],notes:{},income:{},goal:null,base:null,logs:[],asof:null,loaded:{shows:false,reports:false}};
+const S={shows:{},reports:[],notes:{},income:{},goal:null,base:null,logs:[],settle:{},asof:null,loaded:{shows:false,reports:false}};
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=n=>Number(n||0).toLocaleString("ko-KR");
@@ -366,7 +378,11 @@ function sortedShows(){return Object.entries(S.shows).map(([id,v])=>({id,...v}))
 function colorOf(id){const i=sortedShows().findIndex(s=>s.id===id);return `var(--s${(i<0?0:i)%6+1})`}
 function allDates(){return [...new Set([...S.reports.map(r=>r.date),...(S.base==null?Object.keys(S.income):[])])].sort().reverse()}
 function snap(showId,date){let best=null;for(const r of S.reports){if(r.showId===showId&&r.date<=date&&(!best||r.date>best.date))best=r}return best}
-function showRevAt(date){let t=0;for(const id of Object.keys(S.shows)){const r=snap(id,date);if(r)t+=r.revenue}return t}
+// 공연별 수익: 끝났고 최종 정산이 있으면 실제 수익금, 아니면 기준일 시점 누적 매출(전체 판매금)
+function showRevAt(date){let t=0;for(const id of Object.keys(S.shows)){const sh=S.shows[id],st=S.settle[id];
+  if(st&&sh.date<=date){t+=st.net;continue}
+  const r=snap(id,date);if(r)t+=r.revenue}return t}
+function settledAt(date){return Object.keys(S.settle).filter(id=>S.shows[id]&&S.shows[id].date<=date).length}
 function incomeAt(date){
   if(S.base!=null){const sr=showRevAt(date);return {date,amount:S.base+sr,shows:sr}}
   let k=null;for(const d of Object.keys(S.income))if(d<=date&&(!k||d>k))k=d;return k?{date:k,amount:S.income[k]}:null}
@@ -380,7 +396,8 @@ function compute(){
     const c=snap(s.id,asof),p=prevDate?snap(s.id,prevDate):null;
     const t=c?c.tickets:0,rev=c?c.revenue:0;
     const dT=prevDate?t-(p?p.tickets:0):null;
-    return {...s,t,rev,dT,rate:s.seats?t/s.seats:0,dday:diff(s.date,asof),ph:phase(s,asof),last:c,color:colorOf(s.id),note:S.notes[`${s.id}_${asof}`]||""};
+    const inv=c?(c.invites||0):0,st=S.settle[s.id]||null;
+    return {...s,t,rev,dT,inv,st,occ:s.seats?(t+inv)/s.seats:0,rate:s.seats?t/s.seats:0,dday:diff(s.date,asof),ph:phase(s,asof),last:c,color:colorOf(s.id),note:S.notes[`${s.id}_${asof}`]||""};
   });
   return {dates,asof,prevDate,rows};
 }
@@ -399,7 +416,9 @@ function renderGoal(C,sell){
       ${goal?`<div class="rate num">${(r*100).toFixed(1)}%<span>목표 달성률</span></div>`:""}</div>
       ${goal?`<div class="gtrack" role="img" aria-label="목표 대비 ${(r*100).toFixed(1)}%"><div class="gfill" style="width:${base}%"></div>${over?`<div class="gover" style="left:${base}%;width:${overW}%"></div>`:""}<div class="gmark" style="left:calc(${mark}% - 1px)"></div></div>
       <div class="gmeta"><span>목표 <b class="num">${fmt(goal)}원</b></span>${over?`<span class="badge num">목표 초과 +${wonKr(amt-goal)}</span>`:`<span>목표까지 <b class="num">${fmt(goal-amt)}원</b></span>`}</div>`:""}
-      <div class="gmeta"><span>${inc?(S.base!=null?`기 수입금 <b class="num">${fmt(S.base)}원</b> + 기획공연 매출 <b class="num">${fmt(inc.shows)}원</b>`:md(inc.date)+" 기준 누적 입장료 수입"):""}</span><span>${dInc!==null?`지난 집계 대비 <b class="plus num">+${fmt(dInc)}원</b>`:""}</span></div>`;
+      <div class="gmeta"><span>${inc?(S.base!=null?`기 수입금 <b class="num">${fmt(S.base)}원</b> + 기획공연 수익 <b class="num">${fmt(inc.shows)}원</b>${settledAt(C.asof)?` <span style="color:var(--muted)">(정산 완료 ${settledAt(C.asof)}편은 실제 수익금 기준)</span>`:""}`:md(inc.date)+" 기준 누적 입장료 수입"):""}</span><span>${dInc!==null?`지난 집계 대비 <b class="plus num">+${fmt(dInc)}원</b>`:""}</span></div>
+      ${(()=>{const ids=Object.keys(S.settle).filter(id=>S.shows[id]);if(!ids.length)return"";const g=ids.reduce((a,id)=>a+S.settle[id].gross,0),n=ids.reduce((a,id)=>a+S.settle[id].net,0);
+        return `<div class="gmeta"><span>최종 정산 완료 ${ids.length}편 · 전체 판매금 <b class="num">${fmt(g)}원</b> · 실제 수익금 <b class="num">${fmt(n)}원</b></span></div>`})()}`;
   }
   const up=C.rows.filter(r=>r.ph==="upcoming").length;
   $("side").innerHTML=`<span class="eyebrow">판매 중인 공연</span><div class="v num">${sell.length}<small>편</small></div>
@@ -421,21 +440,22 @@ function render(){
   const tr=C.rows.filter(r=>r.ph==="selling"||(r.ph==="ended"&&r.last&&C.prevDate&&r.date>=C.prevDate));
   $("tblSub").textContent=`${md(C.asof)} 기준`+(C.prevDate?` · 증감은 ${md(C.prevDate)} 대비`:"");
   const sumS=tr.reduce((a,r)=>a+(r.seats||0),0),sumT=tr.reduce((a,r)=>a+r.t,0),sumR=tr.reduce((a,r)=>a+r.rev,0);
+  const sumI=tr.reduce((a,r)=>a+r.inv,0);
   const sumD=C.prevDate?tr.reduce((a,r)=>a+(r.dT||0),0):null;
   const d=v=>v===null?'<span style="color:var(--muted)">첫 집계</span>':v>0?`<span class="plus">+${fmt(v)}</span>`:fmt(v);
-  $("tbl").innerHTML=tr.length?`<table><thead><tr><th>공연</th><th>공연일</th><th>좌석</th><th>누적 매수</th><th>주간 증감</th><th>판매율</th><th>누적 매출</th><th>평균 객단가</th></tr></thead><tbody>${
-    tr.map(r=>`<tr><td><div class="nmc"><i style="background:${r.color}"></i><span>${esc(r.name)}${r.ph==="ended"?' <span class="pill">종료</span>':""}</span></div></td><td>${md(r.date)} · ${r.ph==="ended"?"종료":r.dday===0?"D-DAY":"D-"+r.dday}</td><td class="num">${fmt(r.seats)}</td><td class="num">${fmt(r.t)}</td><td class="num">${d(r.dT)}</td><td class="num"><span class="mini">${pct(r.rate)}<em><b style="width:${Math.min(100,r.rate*100)}%;background:${r.color}"></b></em></span></td><td class="num">${fmt(r.rev)}</td><td class="num">${r.t?fmt(Math.round(r.rev/r.t)):"–"}</td></tr>`).join("")
-  }</tbody><tfoot><tr><td>합계</td><td></td><td class="num">${fmt(sumS)}</td><td class="num">${fmt(sumT)}</td><td class="num">${d(sumD)}</td><td class="num">${sumS?pct(sumT/sumS):"–"}</td><td class="num">${fmt(sumR)}</td><td class="num">${sumT?fmt(Math.round(sumR/sumT)):"–"}</td></tr></tfoot></table>
+  $("tbl").innerHTML=tr.length?`<table><thead><tr><th>공연</th><th>공연일</th><th>좌석</th><th>유료 매수</th><th>초대</th><th>주간 증감</th><th>판매율</th><th>누적 매출</th><th>평균 객단가</th></tr></thead><tbody>${
+    tr.map(r=>`<tr><td><div class="nmc"><i style="background:${r.color}"></i><span>${esc(r.name)}${r.ph==="ended"?' <span class="pill">종료</span>':""}</span></div></td><td>${md(r.date)} · ${r.ph==="ended"?"종료":r.dday===0?"D-DAY":"D-"+r.dday}</td><td class="num">${fmt(r.seats)}</td><td class="num">${fmt(r.t)}</td><td class="num">${fmt(r.inv)}</td><td class="num">${d(r.dT)}</td><td class="num"><span class="mini">${pct(r.rate)}<em><b style="width:${Math.min(100,r.rate*100)}%;background:${r.color}"></b></em></span></td><td class="num">${fmt(r.rev)}</td><td class="num">${r.t?fmt(Math.round(r.rev/r.t)):"–"}</td></tr>`).join("")
+  }</tbody><tfoot><tr><td>합계</td><td></td><td class="num">${fmt(sumS)}</td><td class="num">${fmt(sumT)}</td><td class="num">${fmt(sumI)}</td><td class="num">${d(sumD)}</td><td class="num">${sumS?pct(sumT/sumS):"–"}</td><td class="num">${fmt(sumR)}</td><td class="num">${sumT?fmt(Math.round(sumR/sumT)):"–"}</td></tr></tfoot></table>
   <div class="mtbl">${tr.map(r=>`<div class="mrow">
     <div class="mh"><div class="nmc"><i style="background:${r.color}"></i><span>${esc(r.name)}</span></div><span class="md">${r.ph==="ended"?"종료":r.dday===0?"D-DAY":"D-"+r.dday}</span></div>
     <div class="mg">
       <div><span>판매율</span><b class="num">${pct(r.rate)}</b><em><b style="width:${Math.min(100,r.rate*100)}%;background:${r.color}"></b></em></div>
-      <div><span>누적 매수</span><b class="num">${fmt(r.t)}<small>/${fmt(r.seats)}</small></b><small class="num">주간 ${d(r.dT)}</small></div>
+      <div><span>유료 매수</span><b class="num">${fmt(r.t)}<small>/${fmt(r.seats)}</small></b><small class="num">초대 ${fmt(r.inv)} · 주간 ${d(r.dT)}</small></div>
       <div><span>누적 매출</span><b class="num">${fmt(r.rev)}</b></div>
       <div><span>평균 객단가</span><b class="num">${r.t?fmt(Math.round(r.rev/r.t)):"–"}</b></div>
     </div></div>`).join("")}
     <div class="mrow mtot"><div class="mh"><span>합계</span><span class="md">${tr.length}편</span></div>
-    <div class="mg"><div><span>판매율</span><b class="num">${sumS?pct(sumT/sumS):"–"}</b></div><div><span>누적 매수</span><b class="num">${fmt(sumT)}<small>/${fmt(sumS)}</small></b><small class="num">주간 ${d(sumD)}</small></div><div><span>누적 매출</span><b class="num">${fmt(sumR)}</b></div><div><span>평균 객단가</span><b class="num">${sumT?fmt(Math.round(sumR/sumT)):"–"}</b></div></div></div>
+    <div class="mg"><div><span>판매율</span><b class="num">${sumS?pct(sumT/sumS):"–"}</b></div><div><span>유료 매수</span><b class="num">${fmt(sumT)}<small>/${fmt(sumS)}</small></b><small class="num">초대 ${fmt(sumI)} · 주간 ${d(sumD)}</small></div><div><span>누적 매출</span><b class="num">${fmt(sumR)}</b></div><div><span>평균 객단가</span><b class="num">${sumT?fmt(Math.round(sumR/sumT)):"–"}</b></div></div></div>
   </div>`:`<p class="empty" style="padding:20px">기준일에 판매 중인 공연이 없어요.</p>`;
 
   // cards
@@ -443,8 +463,8 @@ function render(){
       <div class="t-main">
         <div><div class="t-series"><i style="background:${r.color}"></i>${esc(r.series)}</div><h3 class="t-name" title="${esc(r.name)}">${esc(r.name)}</h3>
         <div class="t-sub">${md(r.date)} · ${fmt(r.sessions||1)}회 · ${fmt(r.seats)}석</div></div>
-        <div class="bar"><div class="bar-row"><span><b class="num">${pct(r.rate)}</b> 판매율</span><span class="num">${fmt(r.t)} / ${fmt(r.seats)}석</span></div>
-        <div class="track"><div class="fill" style="width:${Math.min(100,r.rate*100)}%;background:${r.color}"></div></div></div>
+        <div class="bar"><div class="bar-row"><span><b class="num">${pct(r.rate)}</b> 판매율</span><span class="num">유료 ${fmt(r.t)} · 초대 ${fmt(r.inv)} / ${fmt(r.seats)}석</span></div>
+        <div class="track"><div class="fill" style="width:${Math.min(100,r.rate*100)}%;background:${r.color}"></div>${r.inv?`<div class="fill inv" style="left:${Math.min(100,r.rate*100)}%;width:${Math.max(0,Math.min(100,r.occ*100)-Math.min(100,r.rate*100))}%;background:${r.color}"></div>`:""}</div>${r.inv?`<span class="occ num">초대 포함 객석 점유율 ${pct(r.occ)}</span>`:""}</div>
         <div class="t-stats"><div><span>누적 매출</span><strong class="num">${won(r.rev)}</strong></div>
         <div><span>이번 주 증가</span><strong class="num ${r.dT>0?"plus":""}">${r.dT===null?"첫 집계":(r.dT>0?"+":"")+fmt(r.dT)+"매"}</strong></div>
         <div><span>평균 객단가</span><strong class="num">${r.t?won(Math.round(r.rev/r.t)):"–"}</strong></div></div>
@@ -458,7 +478,10 @@ function render(){
   const up=C.rows.filter(r=>r.ph==="upcoming");
   $("upcoming").innerHTML=up.length?up.map(r=>`<div class="row"><div><div>${esc(r.name)}</div><div class="m">${esc(r.series)} · ${md(r.date)} · ${fmt(r.seats)}석</div></div><div class="m num" style="white-space:nowrap">${r.openDate?md(r.openDate)+" 오픈":"오픈일 미정"}</div></div>`).join(""):`<p class="empty">예정된 공연이 없어요.</p>`;
   const en=C.rows.filter(r=>r.ph==="ended").reverse();
-  $("ended").innerHTML=en.length?en.map(r=>`<div class="row"><div><div>${esc(r.name)}</div><div class="m">${md(r.date)} · 최종 ${fmt(r.t)}매 · ${won(r.rev)}</div></div><div class="num" style="font-weight:700;white-space:nowrap">${pct(r.rate)}</div></div>`).join(""):`<p class="empty">아직 종료된 공연이 없어요.</p>`;
+  $("ended").innerHTML=en.length?en.map(r=>{const st=r.st,fee=st?st.gross-st.net:0;
+    return `<div class="row end-row"><div><div>${esc(r.name)}</div><div class="m">${md(r.date)} · 유료 ${fmt(r.t)}매 · 초대 ${fmt(r.inv)}매 · 점유율 ${pct(r.occ)}</div>
+    ${st?`<div class="settle num"><span>전체 판매금 <b>${won(st.gross)}</b></span><span>수수료 <b>${won(fee)}</b>${st.gross?` (${(fee/st.gross*100).toFixed(1)}%)`:""}</span><span>실제 수익금 <b class="plus">${won(st.net)}</b></span></div>`:`<div class="m">누적 매출 ${won(r.rev)} · <span style="color:var(--accent-ink)">최종 정산 전</span></div>`}</div>
+    <div class="num" style="font-weight:700;white-space:nowrap">${pct(r.rate)}</div></div>`}).join(""):`<p class="empty">아직 종료된 공연이 없어요.</p>`;
 
   renderEditor(C);
 }
@@ -467,7 +490,7 @@ function renderChart(C){
   const plot=C.rows.filter(r=>r.ph!=="upcoming"&&S.reports.some(x=>x.showId===r.id&&x.date<=C.asof)).filter(r=>r.ph==="selling"||diff(C.asof,r.date)<=28);
   if(!plot.length){$("legend").innerHTML="";$("chart").innerHTML=`<p class="empty">실적이 입력되면 공연별 판매 곡선이 여기에 표시돼요.</p>`;$("chartNote").textContent="";return}
   const series=plot.map(r=>{
-    const pts=S.reports.filter(x=>x.showId===r.id&&x.date<=C.asof).sort((a,b)=>a.date<b.date?-1:1).map(x=>({x:diff(x.date,r.date),y:r.seats?x.tickets/r.seats:0,t:x.tickets,date:x.date}));
+    const pts=S.reports.filter(x=>x.showId===r.id&&x.date<=C.asof).sort((a,b)=>a.date<b.date?-1:1).map(x=>({x:Math.min(0,diff(x.date,r.date)),y:r.seats?x.tickets/r.seats:0,t:x.tickets,date:x.date}));
     if(r.openDate&&r.openDate<=C.asof&&(!pts.length||diff(r.openDate,r.date)<pts[0].x))pts.unshift({x:diff(r.openDate,r.date),y:0,t:0,date:r.openDate,open:true});
     return {r,pts};
   });
@@ -508,11 +531,27 @@ let editId=null,delArm=null,lastWDate=null;
 function renderEditor(C){
   if($("edBody").hidden)return;
   if(!$("wDate").value)$("wDate").value=today();
-  renderWeekly(false);renderLogs();
+  renderWeekly(false);renderLogs();if(!(document.activeElement&&document.activeElement.closest&&document.activeElement.closest("#sRows")))renderSettle();
   $("showList").innerHTML=sortedShows().map(s=>`<div class="row"><div><div>${esc(s.name)}</div><div class="m">${esc(s.series)} · ${md(s.date)} · ${fmt(s.sessions||1)}회 · ${fmt(s.seats)}석 · ${s.openDate?md(s.openDate)+" 오픈":""}</div></div>
     <div class="actions" style="flex:none"><button class="btn ghost" data-edit="${s.id}">수정</button><button class="btn danger" data-del="${s.id}">${delArm===s.id?"정말 삭제":"삭제"}</button></div></div>`).join("")||`<p class="empty">등록된 공연이 없어요.</p>`;
 }
 function ft(t){const m=/^\d{4}-(\d\d)-(\d\d)\s*(.*)$/.exec(t||"");return m?`${+m[1]}. ${+m[2]}. ${m[3]}`:(t||"")}
+// 입력 대상: 판매 중인 공연 + 기준일 전 21일 안에 끝난 공연(최종 실적 입력용)
+function entryShows(d){return sortedShows().filter(s=>(!s.openDate||s.openDate<=d)&&(s.date>=d||diff(d,s.date)<=21))}
+function renderSettle(){
+  const el=$("sRows");if(!el)return;
+  const keep={};el.querySelectorAll("input").forEach(i=>keep[i.id]=i.value);
+  const d=today(),list=sortedShows().filter(s=>s.date<=d).reverse();
+  el.innerHTML=list.length?list.map(s=>{const st=S.settle[s.id],last=snap(s.id,"9999-12-31");
+    const g=keep["g_"+s.id]??(st?st.gross:(last?last.revenue:"")),n=keep["e_"+s.id]??(st?st.net:"");
+    const fee=g!==""&&n!==""?Number(g)-Number(n):null;
+    return `<div class="entry"><div class="nm">${esc(s.name)}<small>${md(s.date)} 공연 · ${st?`정산 완료(${md(st.date)})`:last?`마지막 누적 매출 ${won(last.revenue)} · 정산 전`:"실적 없음"}</small></div>
+      <label for="g_${s.id}">전체 판매금(원)<input type="number" min="0" id="g_${s.id}" data-sid="${s.id}" value="${esc(g)}"></label>
+      <label for="e_${s.id}">실제 수익금(원)<input type="number" min="0" id="e_${s.id}" data-sid="${s.id}" value="${esc(n)}"></label>
+      <label>수수료<span class="num fee" id="f_${s.id}" style="font-size:14px;color:var(--ink);font-weight:600;padding:9px 0">${fee===null?"–":won(fee)+(Number(g)?` (${(fee/Number(g)*100).toFixed(1)}%)`:"")}</span></label></div>`}).join(""):'<p class="empty">아직 끝난 공연이 없어요.</p>';
+  el.querySelectorAll("input").forEach(i=>i.oninput=()=>{const id=i.dataset.sid,g=$("g_"+id).value,n=$("e_"+id).value;
+    $("f_"+id).textContent=g!==""&&n!==""?won(Number(g)-Number(n))+(Number(g)?` (${((Number(g)-Number(n))/Number(g)*100).toFixed(1)}%)`:""):"–"});
+}
 function renderLogs(){
   const el=$("logList");if(!el)return;
   el.innerHTML=S.logs.length?S.logs.map(l=>`<div class="row"><span class="t">${esc(ft(l.time))}</span><span class="n">${esc(l.name)}</span><span>${esc(l.text)}</span></div>`).join(""):'<p class="empty">아직 수정 기록이 없어요.</p>';
@@ -524,28 +563,46 @@ function renderWeekly(reset){
   if(fresh||($("wBase").value===""&&document.activeElement!==$("wBase")))$("wBase").value=S.base??"";
   if(fresh||($("wGoal").value===""&&document.activeElement!==$("wGoal")))$("wGoal").value=S.goal??"";
   lastWDate=d;
-  const list=sortedShows().filter(s=>s.date>=d&&(!s.openDate||s.openDate<=d));
+  const list=entryShows(d);
   const focus=document.activeElement&&document.activeElement.closest&&document.activeElement.closest("#wRows")?document.activeElement.id:null;
   $("wRows").innerHTML=list.length?list.map(s=>{
     const ex=S.reports.find(r=>r.showId===s.id&&r.date===d),pv=snap(s.id,d),nt=S.notes[`${s.id}_${d}`]||"";
     const pn=Object.keys(S.notes).filter(k=>k.startsWith(s.id+"_")&&k.slice(s.id.length+1)<d).sort().pop();
-    const hint=ex?"이 날짜 실적 있음 · 고치면 이전 값은 수정 기록에 남아요":pv?`직전 ${md(pv.date)} 값을 미리 채웠어요. 바뀐 숫자로 고쳐 주세요`:"첫 입력";
+    const ended=s.date<d;
+    const hint=(ended?`<b style="color:var(--accent-ink)">공연 종료 · 최종 판매 실적을 입력해 주세요</b> · `:"")+(ex?"이 날짜 실적 있음 · 고치면 이전 값은 수정 기록에 남아요":pv?`직전 ${md(pv.date)} 값을 미리 채웠어요. 바뀐 숫자로 고쳐 주세요`:"첫 입력");
     const v=(k,def)=>esc(keep[k]??def);
     return `<div class="entry"><div class="nm">${esc(s.name)}<small>${md(s.date)} · ${hint}</small></div>
-      <label for="t_${s.id}">누적 판매매수<input type="number" min="0" id="t_${s.id}" value="${v("t_"+s.id,ex?ex.tickets:pv?pv.tickets:"")}">${pv&&!ex?`<span class="prev">직전 ${fmt(pv.tickets)}매</span>`:""}</label>
+      <label for="t_${s.id}">유료 판매매수(누적)<input type="number" min="0" id="t_${s.id}" value="${v("t_"+s.id,ex?ex.tickets:pv?pv.tickets:"")}">${pv&&!ex?`<span class="prev">직전 ${fmt(pv.tickets)}매</span>`:""}</label>
+      <label for="i_${s.id}">초대(누적)<input type="number" min="0" id="i_${s.id}" value="${v("i_"+s.id,ex?(ex.invites||0):pv?(pv.invites||0):"")}">${pv&&!ex?`<span class="prev">직전 ${fmt(pv.invites||0)}매</span>`:""}</label>
       <label for="r_${s.id}">누적 매출(원)<input type="number" min="0" id="r_${s.id}" value="${v("r_"+s.id,ex?ex.revenue:pv?pv.revenue:"")}">${pv&&!ex?`<span class="prev">직전 ${won(pv.revenue)}</span>`:""}</label>
       <label class="cm" for="n_${s.id}">코멘트<textarea id="n_${s.id}" placeholder="${pn?esc("지난 코멘트("+md(pn.slice(s.id.length+1))+"): "+S.notes[pn]):"프로모션, 이슈, 다음 주 계획"}">${v("n_"+s.id,nt)}</textarea></label></div>`}).join(""):`<p class="empty">이 날짜에 판매 중인 공연이 없어요.</p>`;
   if(focus&&$(focus))$(focus).focus();
 }
 
+function bindSettle(){
+  $("stSave").onclick=async()=>{
+    const ops=[];
+    sortedShows().forEach(s=>{const g=$("g_"+s.id),n=$("e_"+s.id);if(!g)return;
+      const gv=g.value,nv=n.value,st=S.settle[s.id];
+      if(gv===""&&nv===""){if(st)ops.push({type:"settle",showId:s.id,gross:"",net:""});return}
+      if(gv===""||nv===""){return}
+      if(!st||st.gross!==Number(gv)||st.net!==Number(nv))ops.push({type:"settle",showId:s.id,gross:Number(gv),net:Number(nv),date:today()});
+    });
+    if(!ops.length){$("stStatus").textContent="바뀐 정산 내용이 없어요. 전체 판매금과 실제 수익금을 둘 다 넣어 주세요.";return}
+    $("stSave").disabled=true;$("stStatus").textContent="저장 중…";
+    try{await post(ops);$("sRows").innerHTML="";renderSettle();$("stStatus").textContent=`${ops.length}개 공연의 정산을 저장했어요.`}catch(e){$("stStatus").textContent=errMsg(e)}
+    $("stSave").disabled=false;
+  };
+}
 function bindEditor(){
+  bindSettle();
   document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{
     document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected",x===b));
     document.querySelectorAll("[data-pane]").forEach(p=>p.hidden=p.dataset.pane!==b.dataset.tab);});
   $("wDate").onchange=()=>renderWeekly(true);
   $("wSave").onclick=async()=>{
     const d=$("wDate").value;if(!d){$("wStatus").textContent="기준일을 골라 주세요.";return}
-    const list=sortedShows().filter(s=>s.date>=d&&(!s.openDate||s.openDate<=d));
+    const list=entryShows(d);
     $("wSave").disabled=true;$("wStatus").textContent="저장 중…";let n=0;
     try{
       const ops=[];
@@ -553,9 +610,9 @@ function bindEditor(){
       if(base!==""&&Number(base)!==S.base)ops.push({type:"base",amount:Number(base)});
       if(goal!==""&&Number(goal)!==S.goal)ops.push({type:"goal",target:Number(goal)});
       for(const s of list){
-        const t=$("t_"+s.id).value,r=$("r_"+s.id).value,nt=$("n_"+s.id).value;
+        const t=$("t_"+s.id).value,r=$("r_"+s.id).value,iv=$("i_"+s.id).value,nt=$("n_"+s.id).value;
         const ex=S.reports.find(x=>x.showId===s.id&&x.date===d);
-        if(t!==""&&(!ex||ex.tickets!==Number(t)||ex.revenue!==Number(r||0)))ops.push({type:"report",showId:s.id,date:d,tickets:Number(t),revenue:Number(r||0)});
+        if(t!==""&&(!ex||ex.tickets!==Number(t)||ex.revenue!==Number(r||0)||(ex.invites||0)!==Number(iv||0)))ops.push({type:"report",showId:s.id,date:d,tickets:Number(t),revenue:Number(r||0),invites:Number(iv||0)});
         if(nt!==(S.notes[`${s.id}_${d}`]||""))ops.push({type:"note",showId:s.id,date:d,text:nt});
       }
       if(ops.length){S.asof=d;await post(ops)}
@@ -610,7 +667,7 @@ let whoMem="";
 const getPw=()=>{try{return localStorage.getItem(PWK)||""}catch(e){return ""}};
 const setPw=v=>{try{v?localStorage.setItem(PWK,v):localStorage.removeItem(PWK)}catch(e){}};
 let pwMem="";
-function apply(d){S.shows=d.shows||{};S.reports=d.reports||[];S.notes=d.notes||{};S.income=d.income||{};S.goal=d.goal||null;S.base=d.base==null?null:d.base;S.logs=d.logs||[];S.loaded={shows:true,reports:true};render()}
+function apply(d){S.shows=d.shows||{};S.reports=d.reports||[];S.notes=d.notes||{};S.income=d.income||{};S.goal=d.goal||null;S.base=d.base==null?null:d.base;S.logs=d.logs||[];S.settle=d.settle||{};S.loaded={shows:true,reports:true};render()}
 function errMsg(e){return e&&e.code==="wrong_password"?"수정 비밀번호가 맞지 않아요. 다시 확인해 주세요.":"저장하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요."}
 async function call(body){const r=await fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(body)});const j=await r.json();if(!j.ok)throw{code:j.error};return j}
 async function post(ops){const j=await call({password:pwMem,name:whoMem,ops});if(j.data)apply(j.data)}
