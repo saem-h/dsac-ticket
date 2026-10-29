@@ -382,7 +382,6 @@ function snap(showId,date){let best=null;for(const r of S.reports){if(r.showId==
 function showRevAt(date){let t=0;for(const id of Object.keys(S.shows)){const sh=S.shows[id],st=S.settle[id];
   if(st&&sh.date<=date){t+=st.net;continue}
   const r=snap(id,date);if(r)t+=r.revenue}return t}
-function settledAt(date){return Object.keys(S.settle).filter(id=>S.shows[id]&&S.shows[id].date<=date).length}
 function incomeAt(date){
   if(S.base!=null){const sr=showRevAt(date);return {date,amount:S.base+sr,shows:sr}}
   let k=null;for(const d of Object.keys(S.income))if(d<=date&&(!k||d>k))k=d;return k?{date:k,amount:S.income[k]}:null}
@@ -416,9 +415,7 @@ function renderGoal(C,sell){
       ${goal?`<div class="rate num">${(r*100).toFixed(1)}%<span>목표 달성률</span></div>`:""}</div>
       ${goal?`<div class="gtrack" role="img" aria-label="목표 대비 ${(r*100).toFixed(1)}%"><div class="gfill" style="width:${base}%"></div>${over?`<div class="gover" style="left:${base}%;width:${overW}%"></div>`:""}<div class="gmark" style="left:calc(${mark}% - 1px)"></div></div>
       <div class="gmeta"><span>목표 <b class="num">${fmt(goal)}원</b></span>${over?`<span class="badge num">목표 초과 +${wonKr(amt-goal)}</span>`:`<span>목표까지 <b class="num">${fmt(goal-amt)}원</b></span>`}</div>`:""}
-      <div class="gmeta"><span>${inc?(S.base!=null?`기 수입금 <b class="num">${fmt(S.base)}원</b> + 기획공연 수익 <b class="num">${fmt(inc.shows)}원</b>${settledAt(C.asof)?` <span style="color:var(--muted)">(정산 완료 ${settledAt(C.asof)}편은 실제 수익금 기준)</span>`:""}`:md(inc.date)+" 기준 누적 입장료 수입"):""}</span><span>${dInc!==null?`지난 집계 대비 <b class="plus num">+${fmt(dInc)}원</b>`:""}</span></div>
-      ${(()=>{const ids=Object.keys(S.settle).filter(id=>S.shows[id]);if(!ids.length)return"";const g=ids.reduce((a,id)=>a+S.settle[id].gross,0),n=ids.reduce((a,id)=>a+S.settle[id].net,0);
-        return `<div class="gmeta"><span>최종 정산 완료 ${ids.length}편 · 전체 판매금 <b class="num">${fmt(g)}원</b> · 실제 수익금 <b class="num">${fmt(n)}원</b></span></div>`})()}`;
+      <div class="gmeta"><span>${inc?(S.base!=null?`기 수입금 <b class="num">${fmt(S.base)}원</b> + 기획공연 수익 <b class="num">${fmt(inc.shows)}원</b>`:md(inc.date)+" 기준 누적 입장료 수입"):""}</span><span>${dInc!==null?`지난 집계 대비 <b class="plus num">+${fmt(dInc)}원</b>`:""}</span></div>`;
   }
   const up=C.rows.filter(r=>r.ph==="upcoming").length;
   $("side").innerHTML=`<span class="eyebrow">판매 중인 공연</span><div class="v num">${sell.length}<small>편</small></div>
