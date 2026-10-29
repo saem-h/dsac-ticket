@@ -487,7 +487,7 @@ function render(){
 }
 
 function renderChart(C){
-  const plot=C.rows.filter(r=>r.ph!=="upcoming"&&S.reports.some(x=>x.showId===r.id&&x.date<=C.asof)).filter(r=>r.ph==="selling"||diff(C.asof,r.date)<=28);
+  const plot=C.rows.filter(r=>r.ph!=="upcoming"&&S.reports.some(x=>x.showId===r.id&&x.date<=C.asof)).filter(r=>r.ph==="selling"||(diff(C.asof,r.date)<=28&&!finalDone(r,C.asof)));
   if(!plot.length){$("legend").innerHTML="";$("chart").innerHTML=`<p class="empty">실적이 입력되면 공연별 판매 곡선이 여기에 표시돼요.</p>`;$("chartNote").textContent="";return}
   const series=plot.map(r=>{
     const pts=S.reports.filter(x=>x.showId===r.id&&x.date<=C.asof).sort((a,b)=>a.date<b.date?-1:1).map(x=>({x:Math.min(0,diff(x.date,r.date)),y:r.seats?x.tickets/r.seats:0,t:x.tickets,date:x.date}));
