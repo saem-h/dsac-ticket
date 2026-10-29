@@ -571,9 +571,9 @@ function renderWeekly(reset){
     const ex=S.reports.find(r=>r.showId===s.id&&r.date===d),pv=snap(s.id,d),nt=S.notes[`${s.id}_${d}`]||"";
     const pn=Object.keys(S.notes).filter(k=>k.startsWith(s.id+"_")&&k.slice(s.id.length+1)<d).sort().pop();
     const ended=s.date<d;
-    const hint=(ended?`<b style="color:var(--accent-ink)">공연 종료 · 최종 판매 실적을 입력해 주세요</b> · `:"")+(ex?"이 날짜 실적 있음 · 고치면 이전 값은 수정 기록에 남아요":pv?`직전 ${md(pv.date)} 값을 미리 채웠어요. 바뀐 숫자로 고쳐 주세요`:"첫 입력");
+    const hint=[ended?`<b style="color:var(--accent-ink)">공연 종료 · 최종 판매 실적을 입력해 주세요</b>`:"",ex?"":pv?`직전 ${md(pv.date)} 값을 미리 채웠어요. 바뀐 숫자로 고쳐 주세요`:"첫 입력"].filter(Boolean).join(" · ");
     const v=(k,def)=>esc(keep[k]??def);
-    return `<div class="entry"><div class="nm">${esc(s.name)}<small>${md(s.date)} · ${hint}</small></div>
+    return `<div class="entry"><div class="nm">${esc(s.name)}<small>${md(s.date)}${hint?" · "+hint:""}</small></div>
       <label for="t_${s.id}">유료 판매매수(누적)<input type="number" min="0" id="t_${s.id}" value="${v("t_"+s.id,ex?ex.tickets:pv?pv.tickets:"")}">${pv&&!ex?`<span class="prev">직전 ${fmt(pv.tickets)}매</span>`:""}</label>
       <label for="i_${s.id}">초대(누적)<input type="number" min="0" id="i_${s.id}" value="${v("i_"+s.id,ex?(ex.invites||0):pv?(pv.invites||0):"")}">${pv&&!ex?`<span class="prev">직전 ${fmt(pv.invites||0)}매</span>`:""}</label>
       <label for="r_${s.id}">누적 매출(원)<input type="number" min="0" id="r_${s.id}" value="${v("r_"+s.id,ex?ex.revenue:pv?pv.revenue:"")}">${pv&&!ex?`<span class="prev">직전 ${won(pv.revenue)}</span>`:""}</label>
