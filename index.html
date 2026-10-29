@@ -537,7 +537,9 @@ function renderEditor(C){
 }
 function ft(t){const m=/^\d{4}-(\d\d)-(\d\d)\s*(.*)$/.exec(t||"");return m?`${+m[1]}. ${+m[2]}. ${m[3]}`:(t||"")}
 // 입력 대상: 판매 중인 공연 + 기준일 전 21일 안에 끝난 공연(최종 실적 입력용)
-function entryShows(d){return sortedShows().filter(s=>(!s.openDate||s.openDate<=d)&&(s.date>=d||diff(d,s.date)<=21))}
+// 끝난 공연은 최종 정산이 있거나, 공연 뒤 날짜로 실적을 이미 넣었으면 뺀다(그 날짜 기준일에서는 고칠 수 있게 남김)
+function finalDone(s,d){if(S.settle[s.id])return true;return S.reports.some(r=>r.showId===s.id&&r.date>s.date&&r.date<d)}
+function entryShows(d){return sortedShows().filter(s=>(!s.openDate||s.openDate<=d)&&(s.date>=d||(diff(d,s.date)<=21&&!finalDone(s,d))))}
 function renderSettle(){
   const el=$("sRows");if(!el)return;
   const keep={};el.querySelectorAll("input").forEach(i=>keep[i.id]=i.value);
